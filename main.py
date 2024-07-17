@@ -21,34 +21,46 @@ class App(tk.Tk):
 
   def __init__(self):
     super().__init__()
-    global mods
     self.title("Source Engine Mod Launcher and Manager")
     self.geometry("680x400")
     self.resizable(False, False)
     self.configure(bg="#F0F0F0")
-    if self.load_mods() == None:
-      mods = []
-    else:
-      for mod in self.load_mods():
-        mods.append(mod)
     self.create_widgets()
 
   def create_widgets(self):
     self.launchbutton = tk.Button(self,text="Launch Mod",font=("Arial", 16),bg="#F0F0F0",fg="black",command=lambda: self.launch_mod(),borderwidth="0",highlightbackground="#F0F0F0")
     self.launchbutton.place(relx=1, rely=1, anchor="se", bordermode="outside")
     self.addbutton = tk.Button(self,text="Add Mod",font=("Arial", 16),bg="#F0F0F0",fg="black",command=lambda: self.add_mod(),borderwidth="0",highlightbackground="#F0F0F0")
-
+    
     self.addbutton.place(x="1", y="3", anchor="nw", bordermode="outside")
 
-    self.mod_listbox = tk.Listbox(self,
-    font=("Arial", 15),
+    self.mod_listbox_name = tk.Listbox(self,
+    font=("Arial", 7),
     bg="#FFFFFF",
     fg="#333333",
     selectbackground="#F0F0F0",
     selectforeground="black")
 
-    self.mod_listbox.place(x="1", y="45", width="677", height="310")
+    self.mod_listbox_name.place(x="1", y="45", width="225", height="310")
 
+    self.mod_listbox_modpath = tk.Listbox(self,
+      font=("Arial", 7),
+      bg="#FFFFFF",
+      fg="#333333",
+      selectbackground="#F0F0F0",
+      selectforeground="black")
+    
+    self.mod_listbox_modpath.place(x="225", y="45", width="225", height="310")
+
+    self.mod_listbox_gamepath = tk.Listbox(self,
+      font=("Arial", 7),
+      bg="#FFFFFF",
+      fg="#333333",
+      selectbackground="#F0F0F0",
+      selectforeground="black")
+
+    self.mod_listbox_gamepath.place(x="450", y="45", width="225", height="310")
+    
     self.save_button = tk.Button(self,
     text="Save Mods",
     font=("Arial", 16),
@@ -57,14 +69,20 @@ class App(tk.Tk):
     command=lambda: self.save_mods(),
     borderwidth="0",
     highlightbackground="#F0F0F0")
-
-    self.save_button.place(x="300", y="3", bordermode="outside")
     
+    self.save_button.place(x="300", y="3", bordermode="outside")
+    for mod in self.load_mods():
+      mods.append(mod)
     for mod in mods:
-      self.mod_listbox.insert(tk.END, mod.name)
+      self.mod_listbox_name.insert(tk.END, mod.name)
+      self.mod_listbox_gamepath.insert(tk.END, mod.gamepath)
+      self.mod_listbox_modpath.insert(tk.END, mod.modpath)
+      
+    
+    
 
     self.save_button = tk.Button(self,text="Save Mods",font=("Arial", 16),bg="#F0F0F0",fg="black",command=lambda: self.save_mods())
-
+      
 
   def add_mod(self):
     global modwindow
@@ -125,10 +143,11 @@ class App(tk.Tk):
       text="Create",
       font=("Arial", 16),
       bg="#F0F0F0",
-      command=lambda: self.create_mod(namebox.get(), modpathbox.get(),gamepathbox.get()))
+      command=lambda:self.create_mod(namebox.get(), modpathbox.get(),gamepathbox.get()))
     createbutton.place(relx=1, rely=1, anchor="se", bordermode="outside")
 
   def create_mod(self, modname, modpath, gamepath):
+    global mods
     if gamepath == "":
       messagebox.showerror("Error", "No gamepath set")
     if modpath == "":
@@ -140,62 +159,75 @@ class App(tk.Tk):
       if self.checkformod(modname):
         self.close_mod_window = True  # Set flag to close window
         modwindow.destroy()
+        local_mods = mods
+        mods = []
+        for mod in local_mods:
+          mods.append(mod)
         mods.append(Mod(modname, modpath, gamepath))
-        self.mod_listbox.insert(tk.END, modname)
+        self.mod_listbox_name.insert(tk.END, modname)
+        self.mod_listbox_gamepath.insert(tk.END, gamepath)
+        self.mod_listbox_modpath.insert(tk.END, modpath)
       else:
         if messagebox.askyesno("Name is already in mods", "The name you entered is already in the list of mods. Do you want to add anyway?"):
           self.close_mod_window = True  # Set flag to close window
           mods.append(Mod(modname, modpath, gamepath))
-          self.mod_listbox.insert(tk.END, modname)
+          self.mod_listbox_name.insert(tk.END, modname)
+          self.mod_listbox_gamepath.insert(tk.END, gamepath)
+          self.mod_listbox_modpath.insert(tk.END, modpath)
         else:
           self.close_mod_window = False  # Don't close the window
 
       if self.close_mod_window:
         modwindow.destroy()  # Close the window after message box interaction
-
+          
 
   def launch_mod(self):
     print(mods)
-    mod = self.mod_listbox.curselection()
+    mod = self.mod_listbox_name.curselection()
     mod = mod[0]
     mod = mods[mod]
     os.startfile(mod.gamepath, "open", f'-game "{mod.modpath}"')
 
   def save_mods(self):
     if mods != []:
-      with open("mods.dat", "w") as f:  # Use 'with' for automatic file closure
         encoded_mods = [
-          base64.b64encode(
-              str([
-                  mod.name.encode(),
-                  mod.modpath.encode(),
-                  mod.gamepath.encode()
-              ]).encode()).decode() for mod in mods
-      ]
-        f.write(str(encoded_mods))  # Write the list of encoded mods to the file
+            base64.b64encode(
+                str([
+                    mod.name.encode(),
+                    mod.modpath.encode(),
+                    mod.gamepath.encode()
+                ]).encode()).decode() for mod in mods
+        ]
+        with open("mods.dat", "w") as f:
+            f.write(str(encoded_mods))
     else:
-      messagebox.showerror("Error", "No mods to save.")
+        messagebox.showerror("Error", "No mods to save.")
 
   def load_mods(self):
       mods = []  # Assign the loaded mods to the mods variable
       if os.path.exists("mods.dat"):
         with open("mods.dat", "r") as f:
           file = f.read()
-          if str(file) != "" or "[]":
-            encoded_mods_str = file.strip('[]')
-            encoded_mods = encoded_mods_str.split(', ')
-            for encoded_mod in encoded_mods:
-              decoded_mod = base64.b64decode(encoded_mod.encode()).decode()
-              print(decoded_mod)
-              mod_data = eval(decoded_mod)
-              name, modpath, gamepath = mod_data
-              mods.append(Mod(name, modpath, gamepath))
-          else:
-            messagebox.showwarning("Mods file empty", "The 'mods.dat' file exists but has no data.")
-
+          if file:
+            if str(file) != "" or "[]":
+              encoded_mods_str = file.strip('[]')
+              encoded_mods = encoded_mods_str.split(', ')
+              for encoded_mod in encoded_mods:
+                decoded_mod = base64.b64decode(encoded_mod.encode()).decode()
+                print(decoded_mod)
+                mod_data = eval(decoded_mod)
+                name, modpath, gamepath = mod_data
+                mods.append(Mod(name, modpath, gamepath))
+            else:
+              messagebox.showwarning("Mods file empty", "The 'mods.dat' file exists but has no data.")
+      
         return mods
 
+      else:
+        return []
+
   def checkformod(self, modname):
+    global mods
     modcheck = bool(False)
     for mod in mods:
       if mod.name == modname:
@@ -204,11 +236,18 @@ class App(tk.Tk):
         if not modcheck:
           modcheck = False
 
-    if mods == []:
+    if not mods:
       modcheck = True
-
+  
     return modcheck
 
+  def list_mods(self):
+    for mod in mods:
+      print(mod)
+
+    len(mods)
+    print(not mods)
+    
 # Launch the app
 
 if __name__ == "__main__":
