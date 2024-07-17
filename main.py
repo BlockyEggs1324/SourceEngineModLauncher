@@ -21,17 +21,23 @@ class App(tk.Tk):
 
   def __init__(self):
     super().__init__()
+    global mods
     self.title("Source Engine Mod Launcher and Manager")
     self.geometry("680x400")
     self.resizable(False, False)
     self.configure(bg="#F0F0F0")
+    if self.load_mods() == None:
+      mods = []
+    else:
+      for mod in self.load_mods():
+        mods.append(mod)
     self.create_widgets()
 
   def create_widgets(self):
     self.launchbutton = tk.Button(self,text="Launch Mod",font=("Arial", 16),bg="#F0F0F0",fg="black",command=lambda: self.launch_mod(),borderwidth="0",highlightbackground="#F0F0F0")
     self.launchbutton.place(relx=1, rely=1, anchor="se", bordermode="outside")
     self.addbutton = tk.Button(self,text="Add Mod",font=("Arial", 16),bg="#F0F0F0",fg="black",command=lambda: self.add_mod(),borderwidth="0",highlightbackground="#F0F0F0")
-    
+
     self.addbutton.place(x="1", y="3", anchor="nw", bordermode="outside")
 
     self.mod_listbox = tk.Listbox(self,
@@ -51,14 +57,14 @@ class App(tk.Tk):
     command=lambda: self.save_mods(),
     borderwidth="0",
     highlightbackground="#F0F0F0")
-    
+
     self.save_button.place(x="300", y="3", bordermode="outside")
-    mods = self.load_mods()
+    
     for mod in mods:
       self.mod_listbox.insert(tk.END, mod.name)
 
     self.save_button = tk.Button(self,text="Save Mods",font=("Arial", 16),bg="#F0F0F0",fg="black",command=lambda: self.save_mods())
-      
+
 
   def add_mod(self):
     global modwindow
@@ -146,7 +152,7 @@ class App(tk.Tk):
 
       if self.close_mod_window:
         modwindow.destroy()  # Close the window after message box interaction
-          
+
 
   def launch_mod(self):
     print(mods)
@@ -171,22 +177,23 @@ class App(tk.Tk):
       messagebox.showerror("Error", "No mods to save.")
 
   def load_mods(self):
-    mods = []
-    if os.path.exists("mods.dat"):  # Check if the file exists
-      with open("mods.dat", "r") as f:
-        encoded_mods_str = f.read()  # Read the entire file content as a string
-        if encoded_mods_str != "":
-          encoded_mods_str = encoded_mods_str.strip('[]')  # Remove brackets from the string
-          encoded_mods = encoded_mods_str.split(', ')  # Split into individual encoded strings
-          for encoded_mod in encoded_mods:
-            decoded_mod = base64.b64decode(encoded_mod.encode()).decode()
-            mod_data = eval(decoded_mod)
-            name, modpath, gamepath = mod_data
-            mods.append(Mod(name, modpath, gamepath))
-        else:
-          messagebox.showwarning("Mods file empty", "The 'mods.dat' file exists but has no data.")
-        
-    return mods
+      mods = []  # Assign the loaded mods to the mods variable
+      if os.path.exists("mods.dat"):
+        with open("mods.dat", "r") as f:
+          file = f.read()
+          if str(file) != "" or "[]":
+            encoded_mods_str = file.strip('[]')
+            encoded_mods = encoded_mods_str.split(', ')
+            for encoded_mod in encoded_mods:
+              decoded_mod = base64.b64decode(encoded_mod.encode()).decode()
+              print(decoded_mod)
+              mod_data = eval(decoded_mod)
+              name, modpath, gamepath = mod_data
+              mods.append(Mod(name, modpath, gamepath))
+          else:
+            messagebox.showwarning("Mods file empty", "The 'mods.dat' file exists but has no data.")
+
+        return mods
 
   def checkformod(self, modname):
     modcheck = bool(False)
@@ -199,9 +206,9 @@ class App(tk.Tk):
 
     if mods == []:
       modcheck = True
-  
+
     return modcheck
-      
+
 # Launch the app
 
 if __name__ == "__main__":
